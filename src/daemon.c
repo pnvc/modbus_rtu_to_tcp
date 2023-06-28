@@ -6,6 +6,7 @@ int32_t main(int32_t argc, char **argv)
 Kill it with 'sudo kill -15 [PID]'\n");
 	start_process_as_daemon();
 	start_logging();
+	int32_t new_tty = Open_tty("/dev/ttyAMA3", SPEED_BAUD);
 	int32_t uart = Open_tty(UART_TTY, SPEED_BAUD);
 	int32_t sock;
 connection:
@@ -28,18 +29,16 @@ closed connection or stopped runtime");
 					goto connection;
 				}
 				tcp_to_uart(buf, &rr);
+				usleep(500000);
 				write(uart, buf, rr);
 			} else {
 				/* prototype route for /dev/ttyAMA3 */
-				int32_t new_tty;
 				uint16_t crc;
-				switch (route_address) {
+				switch (buf[0]) {
 					case 100:
-					new_tty =
-						Open_tty
-						("/dev/ttyAMA3", SPEED_BAUD);
 					Write(new_tty, buf + 1, rr - 2);
 					explicit_bzero(buf + 1, rr - 1);
+					sleep(1);
 					rr = Read(new_tty, buf + 1, BUF_SIZE - 1);
 					if (check_crc(buf + 1, rr)) {
 						++rr;
@@ -55,7 +54,6 @@ closed connection or stopped runtime");
 						Write(uart, CRC_ERROR,
 							sizeof(CRC_ERROR) - 1);
 					}
-					close(new_tty);
 					default: break;
 				}
 				/* prototype route for /dev/ttyAMA3 */
